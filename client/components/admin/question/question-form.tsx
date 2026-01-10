@@ -40,6 +40,7 @@ export default function QuestionForm({ type, isCreating, initialData }: Props) {
         boilerplate: { c: "", cpp: "", java: "", python: "", javascript: "" },
         functionName: "",
         inputVariables: [],
+        testCases: [],
       };
     } else {
       return {

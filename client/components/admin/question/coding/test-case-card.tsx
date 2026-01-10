@@ -81,7 +81,7 @@ export default function TestCaseCard() {
                             <FormItem>
                                 <FormLabel>Function Name</FormLabel>
                                 <FormControl>
-                                    <Input {...field} placeholder="e.g. solve" />
+                                    <Input {...field} value={field.value ?? ""} placeholder="e.g. solve" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -110,7 +110,7 @@ export default function TestCaseCard() {
                                     render={({ field }) => (
                                         <FormItem className="flex-1">
                                             <FormControl>
-                                                <Input {...field} placeholder="Variable Name" />
+                                                <Input {...field} value={field.value ?? ""} placeholder="Variable Name" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -226,7 +226,7 @@ export default function TestCaseCard() {
                                                             <FormItem>
                                                                 <FormLabel className="text-xs">{variable.name} <span className="text-muted-foreground font-normal">({variable.type})</span></FormLabel>
                                                                 <FormControl>
-                                                                    <Input {...field} placeholder={`Value for ${variable.name}`} className="h-8 text-sm" />
+                                                                    <Input {...field} value={field.value ?? ""} placeholder={`Value for ${variable.name}`} className="h-8 text-sm" />
                                                                 </FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
@@ -246,6 +246,7 @@ export default function TestCaseCard() {
                                                             <FormControl>
                                                                 <Textarea
                                                                     {...field}
+                                                                    value={field.value ?? ""}
                                                                     placeholder="Expected output"
                                                                     className="min-h-[100px] resize-none font-mono text-sm"
                                                                 />
