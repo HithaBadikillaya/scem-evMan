@@ -18,7 +18,18 @@ export default async function TestPage({
 
   if (!contest) return notFound();
 
+
+  let questions = [];
+  try {
+    if (contest.questions && contest.questions.length > 0) {
+      questions = await db.find("questions", { _id: { $in: contest.questions } });
+    }
+  } catch (e) {
+    console.error("Failed to fetch questions for landing page", e);
+  }
+
   const firstQuestionId = contest.questions?.[0] || "";
+  const isStarted = new Date() >= new Date(contest.startTime);
 
   return (
     <div className="min-h-screen pt-12 bg-primary text-foreground">
@@ -61,14 +72,37 @@ export default async function TestPage({
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-lg bg-muted/30">
                     <span className="font-medium text-muted-foreground">Host</span>
-                    <span className="font-semibold">{contest.author}</span>
+                    <span className="font-semibold">{contest.author || "SCEM Coding Club"}</span>
                   </div>
                 </div>
               </div>
 
+              {/* Assessment Questions */}
+              {questions.length > 0 && (
+                <div className="space-y-4 pt-4 border-t">
+                  <h4 className="text-lg font-semibold">Assessment Questions</h4>
+                  <div className="space-y-3">
+                    {questions.map((problem: any, i: number) => (
+                      <div key={problem._id} className="flex flex-col p-3 rounded-lg border bg-muted/20">
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="text-sm font-medium leading-tight">{i + 1}. {problem.title}</span>
+                          <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 bg-primary/10 text-primary rounded whitespace-nowrap">
+                            {problem.questionType || problem.type || "Coding"}
+                          </span>
+                        </div>
+                        <div className="flex gap-3 mt-1 text-[11px] text-muted-foreground">
+                          <span>Marks: {problem.marks}</span>
+                          <span>Difficulty: {problem.difficulty}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Rules */}
               {contest.rules && contest.rules.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-4 pt-4 border-t">
                   <h4 className="text-lg font-semibold">Assessment Rules</h4>
                   <ul className="space-y-3">
                     {contest.rules.map((rule: string, i: number) => (
@@ -85,7 +119,11 @@ export default async function TestPage({
 
           {/* Take Test Button */}
           <div className="p-6 border-t bg-card">
-            {firstQuestionId ? (
+            {!isStarted ? (
+              <Button disabled className="w-full py-6 text-lg font-bold opacity-50 cursor-not-allowed">
+                Test not started yet
+              </Button>
+            ) : firstQuestionId ? (
               <Link href={`/attempt/test/${id}/question/${firstQuestionId}`}>
                 <Button className="w-full py-6 text-lg font-bold gap-3 shadow-lg shadow-primary/20">
                   <Play className="w-5 h-5 fill-current" />

@@ -1,9 +1,33 @@
-// app/questions/[type]/[id]/edit/page.tsx
 import { notFound } from "next/navigation";
 import QuestionForm from "@/components/admin/question/question-form";
-import { db } from "@/lib/db";
+import { auth } from "@/auth";
 
 const VALID_TYPES = ["coding", "mcq"] as const;
+
+async function getProblemDetail(id: string) {
+  try {
+    const session = await auth();
+    const token = session?.backendToken;
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/questions/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch admin question detail:", await res.text());
+      return null;
+    }
+
+    const json = await res.json();
+    return json.success ? json.problem : null;
+  } catch (error) {
+    console.error("Error fetching admin question detail:", error);
+    return null;
+  }
+}
 
 export default async function EditQuestionPage({
   params,
@@ -13,12 +37,7 @@ export default async function EditQuestionPage({
   const { type, id } = await params;
   if (!VALID_TYPES.includes(type as any)) return notFound();
 
-  let data = null;
-  try {
-    data = await db.findOne("questions", { _id: id });
-  } catch (e) {
-    console.error(e);
-  }
+  const data = await getProblemDetail(id);
 
   if (!data || data.type !== type) return notFound();
 
