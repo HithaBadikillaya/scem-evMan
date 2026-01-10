@@ -5,10 +5,35 @@ import { TestInformationCard } from "@/components/admin/test/test-detail/test-ca
 import { ParticipationStatisticsCard } from "@/components/admin/test/test-detail/participation-card";
 import { QuickActionsCard } from "@/components/admin/test/test-detail/actions-card";
 import TestEditQuestions from "@/components/admin/test/questions-list";
-import { db } from "@/lib/db";
+import { auth } from "@/auth";
 
 interface IdParams {
   id: string;
+}
+
+async function getAdminTestDetail(id: string) {
+  try {
+    const session = await auth();
+    const token = session?.backendToken;
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/tests/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch admin test detail:", await res.text());
+      return null;
+    }
+
+    const json = await res.json();
+    return json.success ? json.contest : null;
+  } catch (error) {
+    console.error("Error fetching admin test detail:", error);
+    return null;
+  }
 }
 
 export default async function AdminTestDetailPage({
@@ -17,38 +42,34 @@ export default async function AdminTestDetailPage({
   params: Promise<IdParams>;
 }) {
   const { id } = await params;
+  const data = await getAdminTestDetail(id);
   let test = null;
 
-  try {
-    const data = await db.findOne("contests", { _id: id });
-    if (data) {
-      const start = new Date(data.startTime);
-      const end = new Date(data.endTime);
-      const diffMs = end.getTime() - start.getTime();
-      const totalSeconds = Math.floor(diffMs / 1000);
-      const h = Math.floor(totalSeconds / 3600);
-      const m = Math.floor((totalSeconds % 3600) / 60);
-      const s = totalSeconds % 60;
+  if (data) {
+    const start = new Date(data.startTime);
+    const end = new Date(data.endTime);
+    const diffMs = end.getTime() - start.getTime();
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
 
-      test = {
-        id: data._id,
-        title: data.title,
-        description: data.description,
-        duration: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`,
-        startsAt: data.startTime,
-        problems: (data.questions || []).map((q: any) => ({
-          ...q,
-          id: q?._id ?? q?.id,
-        })),
-        status: data.status,
-        participantsInProgress: 0,
-        participantsCompleted: 0,
-        totalQuestions: data.questions?.length || 0,
-        createdAt: data.createdAt,
-      };
-    }
-  } catch (error) {
-    console.error("Error fetching test detail:", error);
+    test = {
+      id: data._id,
+      title: data.title,
+      description: data.description,
+      duration: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`,
+      startsAt: data.startTime,
+      problems: (data.questions || []).map((q: any) => ({
+        ...q,
+        id: q?._id ?? q?.id,
+      })),
+      status: data.status,
+      participantsInProgress: 0,
+      participantsCompleted: 0,
+      totalQuestions: data.questions?.length || 0,
+      createdAt: data.createdAt,
+    };
   }
 
   if (!test) {
