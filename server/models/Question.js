@@ -24,15 +24,13 @@ const questionSchema = new mongoose.Schema({
   inputFormat: String,
   outputFormat: String,
   boilerplateCode: {
-    cpp: String,
     c: String,
     java: String,
     python: String,
-    javascript: String,
   },
   functionName: String,
   inputVariables: [{
-    name: String,
+    variable: String,
     type: {
       type: String,
       enum: ['int', 'float', 'char', 'string', 'int_array', 'float_array', 'string_array']

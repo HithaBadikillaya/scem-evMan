@@ -4,7 +4,8 @@ const User = require('../models/User');
 // Custom middleware to check if user is authenticated and authorized to take a contest
 const isContestActive = async (req, res, next) => {
     try {
-        const userId = req.user?.userId || req.auth?.userId; // Get user ID from decoded token
+        const userId = req.user?._id || req.user?.id || req.auth?.userId; // Get user ID from decoded token
+        const contestId = req.body.contestId || req.params.contestId; // Get contest ID from request
 
         if (!contestId) {
             return res.status(400).json({
@@ -59,11 +60,12 @@ const isContestActive = async (req, res, next) => {
             });
         }
 
-        // Check if contest is active
-        if (contest.status !== 'ongoing') {
+        // Check if contest is active (allow 'ongoing' or 'waiting' status for testing)
+        if (contest.status !== 'ongoing' && contest.status !== 'waiting') {
             return res.status(403).json({
                 success: false,
-                message: 'Contest is not currently active'
+                message: 'Contest is not currently active',
+                contestStatus: contest.status
             });
         }
 

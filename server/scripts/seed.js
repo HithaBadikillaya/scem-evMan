@@ -82,13 +82,19 @@ const questions = [
     constraints: '2 <= nums.length <= 10^4',
     inputFormat: 'First line contains n (size of array) and target. Second line contains n space-separated integers',
     outputFormat: 'Two space-separated integers representing the indices',
+    functionName: 'twoSum',
+    inputVariables: [
+      { variable: 'nums', type: 'int_array' },
+      { variable: 'target', type: 'int' }
+    ],
     boilerplateCode: {
-      python: `def twoSum(nums, target):\n    # Write your code here\n    pass\n\nif __name__ == "__main__":\n    n, target = map(int, input().split())\n    nums = list(map(int, input().split()))\n    result = twoSum(nums, target)\n    print(result[0], result[1])`,
-      javascript: `function twoSum(nums, target) {\n    // Write your code here\n}\n\nconst readline = require('readline');\nconst rl = readline.createInterface({\n    input: process.stdin,\n    output: process.stdout\n});\n\nlet input = [];\nrl.on('line', (line) => {\n    input.push(line);\n}).on('close', () => {\n    const [n, target] = input[0].split(' ').map(Number);\n    const nums = input[1].split(' ').map(Number);\n    const result = twoSum(nums, target);\n    console.log(result[0] + ' ' + result[1]);\n});`,
+      python: `def twoSum(nums, target):\n    # Write your code here\n    pass`,
+      c: `void twoSum(int* nums, int nums_size, int target) {\n    // Write your code here\n    printf("Output goes here\\n");\n}`,
+      java: `class Code {\n    public static void twoSum(int[] nums, int target) {\n        // Write your code here\n        System.out.println("Output goes here");\n    }\n}`,
     },
     testcases: [
-      { input: '4 9\n2 7 11 15', output: '0 1' },
-      { input: '3 6\n3 2 4', output: '1 2' },
+      { input: { nums: [2, 7, 11, 15], target: 9 }, output: '0 1' },
+      { input: { nums: [3, 2, 4], target: 6 }, output: '1 2' },
     ],
   },
   {
@@ -100,13 +106,19 @@ const questions = [
     constraints: '-2^31 <= x <= 2^31 - 1',
     inputFormat: 'A single integer x',
     outputFormat: 'true or false',
+    functionName: 'isPalindrome',
+    inputVariables: [
+      { variable: 'x', type: 'int' }
+    ],
     boilerplateCode: {
-      python: `def isPalindrome(x):\n    # Write your code here\n    pass\n\nif __name__ == "__main__":\n    x = int(input())\n    print("true" if isPalindrome(x) else "false")`,
+      python: `def isPalindrome(x):\n    # Write your code here\n    pass`,
+      c: `void isPalindrome(int x) {\n    // Write your code here\n    printf("Output goes here\\n");\n}`,
+      java: `class Code {\n    public static void isPalindrome(int x) {\n        // Write your code here\n        System.out.println("Output goes here");\n    }\n}`,
     },
     testcases: [
-      { input: '121', output: 'true' },
-      { input: '-121', output: 'false' },
-      { input: '10', output: 'false' },
+      { input: { x: 121 }, output: 'true' },
+      { input: { x: -121 }, output: 'false' },
+      { input: { x: 10 }, output: 'false' },
     ],
   },
 ];
@@ -141,13 +153,14 @@ const seedDatabase = async () => {
 
     // Seed Contests
     console.log('Seeding contests...');
+    const now = new Date();
     const contests = [
       {
         title: 'Beginner Programming Contest',
         description: 'A contest for beginners to test their basic programming skills.',
         type: 'coding',
-        startTime: new Date('2026-02-01T10:00:00Z'),
-        endTime: new Date('2026-02-01T13:00:00Z'),
+        startTime: new Date(now.getTime() - 60 * 60 * 1000), // Started 1 hour ago
+        endTime: new Date(now.getTime() + 2 * 60 * 60 * 1000), // Ends in 2 hours
         questions: codingQuestions.map(q => q._id.toString()),
         author: adminUser._id.toString(),
         rules: ['No plagiarism allowed', 'Time limit: 3 hours'],
@@ -158,8 +171,8 @@ const seedDatabase = async () => {
         title: 'Quick MCQ Quiz',
         description: 'A rapid-fire MCQ quiz covering computer science fundamentals.',
         type: 'mcq',
-        startTime: new Date('2026-01-25T11:00:00Z'),
-        endTime: new Date('2026-01-25T12:00:00Z'),
+        startTime: new Date(now.getTime() - 30 * 60 * 1000), // Started 30 minutes ago
+        endTime: new Date(now.getTime() + 30 * 60 * 1000), // Ends in 30 minutes
         questions: mcqQuestions.map(q => q._id.toString()),
         author: adminUser._id.toString(),
         rules: ['Single attempt only', 'No negative marking'],
@@ -184,24 +197,24 @@ const seedDatabase = async () => {
       {
         contest: createdContests[0]._id,
         user: regularUser._id,
-        startedAt: new Date('2026-02-01T10:05:00Z'),
-        submittedAt: new Date('2026-02-01T12:30:00Z'),
+        startedAt: new Date('2026-01-10T10:05:00Z'),
+        submittedAt: new Date('2026-01-10T12:30:00Z'),
         status: 'Completed',
         totalScore: 30,
         submissions: [
           {
             question: codingQuestions[0]._id,
-            answer: ['def twoSum(nums, target):\\n    seen = {}\\n    for i, num in enumerate(nums):\\n        if target - num in seen:\\n            return [seen[target - num], i]\\n        seen[num] = i'],
+            answer: ['def twoSum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        if target - num in seen:\n            return [seen[target - num], i]\n        seen[num] = i'],
             language: 'python',
             status: 'Accepted',
             testCaseResults: [
-              { testCase: 1, passed: true, input: '4 9\\n2 7 11 15', expectedOutput: '0 1', actualOutput: '0 1' },
-              { testCase: 2, passed: true, input: '3 6\\n3 2 4', expectedOutput: '1 2', actualOutput: '1 2' },
+              { testCase: 1, passed: true, input: '4 9\n2 7 11 15', expectedOutput: '0 1', actualOutput: '0 1' },
+              { testCase: 2, passed: true, input: '3 6\n3 2 4', expectedOutput: '1 2', actualOutput: '1 2' },
             ],
             executionTime: 45,
             memoryUsed: 2048,
             score: 30,
-            submittedAt: new Date('2026-02-01T11:00:00Z'),
+            submittedAt: new Date('2026-01-10T11:00:00Z'),
           },
         ],
       },
