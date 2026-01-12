@@ -1,5 +1,6 @@
 const Submission = require("../models/Submissions");
 const { languageMap } = require("../utils/languageMap");
+const { getJudge } = require("@pomelo/code-gen");
 
 // Helper function to remove trailing whitespace/newlines from output
 const removeTrailingLineCommands = (output) => {
@@ -95,12 +96,46 @@ const submitCode = async (req, res) => {
             return res.status(400).json({ error: "Unsupported language" });
         }
 
+        // Get the judge for the language and wrap the code
+        let wrappedCode = code;
+        try {
+            const judge = getJudge(language.toLowerCase());
+            const problemConfig = {
+                method: question.functionName || 'solve',
+                input: (question.inputVariables || []).map(v => ({
+                    variable: v.name,
+                    type: v.type
+                }))
+            };
+            wrappedCode = judge.wrapCode(code, problemConfig);
+            console.log(`Wrapped code for ${language}:`, wrappedCode);
+        } catch (err) {
+            console.warn(`Could not wrap code for ${language}, using original code:`, err.message);
+        }
+
         const testCases = question.testcases || [];
         let passedCount = 0;
 
         // Execute code against all test cases in parallel
         const executionPromises = testCases.map(async (tc, index) => {
-            const input = typeof tc.input === 'object' ? JSON.stringify(tc.input) : tc.input;
+            // Format input: if it's an object with structured data, convert to space-separated string
+            let input = '';
+            if (typeof tc.input === 'object' && tc.input !== null) {
+                // Extract values in order based on inputVariables
+                const values = [];
+                for (const inputVar of (question.inputVariables || [])) {
+                    const value = tc.input[inputVar.name];
+                    if (Array.isArray(value)) {
+                        values.push(...value);
+                    } else {
+                        values.push(value);
+                    }
+                }
+                input = values.join(' ');
+            } else {
+                input = tc.input;
+            }
+            
             const expectedOutput = removeTrailingLineCommands(tc.output.trim());
 
             try {
@@ -109,7 +144,7 @@ const submitCode = async (req, res) => {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        source_code: code,
+                        source_code: wrappedCode,
                         language_id: judge0Id,
                         stdin: input,
                         expected_output: expectedOutput,
