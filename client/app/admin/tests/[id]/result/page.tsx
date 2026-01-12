@@ -1,5 +1,7 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -22,8 +24,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { getTestById } from "@/constants/test-data";
-
 /* ---------- Types ---------- */
 interface Participant {
   userId: string;
@@ -44,50 +44,98 @@ interface TestResult {
   };
 }
 
+/* ---------- Placeholder Data ---------- */
+const PLACEHOLDER_DATA: TestResult = {
+  id: "placeholder-test-id",
+  testName: "Frontend Placeholder Test",
+  description: "This data is displayed because the backend is unreachable or you are viewing this in a frontend-only environment.",
+  participants: [
+    {
+      userId: "user-1",
+      name: "Alice Placeholder",
+      email: "alice@example.com",
+      score: 92,
+      submittedAt: new Date().toISOString(),
+    },
+    {
+      userId: "user-2",
+      name: "Bob Mock data",
+      email: "bob@example.com",
+      score: 78,
+      submittedAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      userId: "user-3",
+      name: "Charlie Demo",
+      email: "charlie@example.com",
+      score: 85,
+      submittedAt: new Date(Date.now() - 172800000).toISOString(),
+    }
+  ],
+  stats: {
+    totalParticipants: 3,
+    averageScore: 85,
+  },
+};
+
 export default function AdminTestResultPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<TestResult | null>(null);
 
-  /* ---------- CORE LOGIC (STATIC CONSTANT DATA) ---------- */
-  const fetchData = () => {
-    setLoading(true);
+  /* ---------- CORE LOGIC (DYNAMIC FETCH with Placeholder Fallback) ---------- */
+  const fetchData = async () => {
+    if (status === "loading") return;
 
-    const testInfo = getTestById(id as string);
-
-    if (!testInfo) {
-      setData(null);
+    // Use placeholder if not authenticated or no token
+    if (status === "unauthenticated" || !session?.backendToken) {
+      console.warn("No authentication detected. Using placeholder data.");
+      setData(PLACEHOLDER_DATA);
       setLoading(false);
       return;
     }
 
-    const participants: Participant[] = testInfo.participants || [];
+    setLoading(true);
 
-    const averageScore =
-      participants.length > 0
-        ? participants.reduce((sum, p) => sum + p.score, 0) /
-        participants.length
-        : 0;
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080'}/api/admin/tests/${id}/result`, {
+        headers: {
+          'Authorization': `Bearer ${session.backendToken}`
+        }
+      });
 
-    setData({
-      id: testInfo.id,
-      testName: testInfo.title,
-      description: testInfo.description,
-      participants,
-      stats: {
-        totalParticipants: participants.length,
-        averageScore,
-      },
-    });
+      if (response.status === 401) {
+        console.warn("Session expired. Using placeholder data.");
+        setData(PLACEHOLDER_DATA);
+        return;
+      }
 
-    setTimeout(() => setLoading(false), 800);
+      const json = await response.json();
+
+      if (json.success) {
+        setData(json.results);
+      } else {
+        console.error("Failed to fetch results:", json.error);
+        setData(PLACEHOLDER_DATA);
+      }
+    } catch (error) {
+      console.error("Error fetching results:", error);
+      setData(PLACEHOLDER_DATA);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchData();
-  }, [id]);
+    // Attempt fetch even if unauthenticated to trigger fallback logic
+    // But we need to wait for status to settle from "loading"
+    if (status !== "loading") {
+      fetchData();
+    }
+  }, [id, status, session]);
 
   if (loading) {
     return (
@@ -97,7 +145,8 @@ export default function AdminTestResultPage() {
           <Skeleton className="h-4 w-1/2 bg-mountain-meadow-100/10" />
         </div>
         <div className="grid gap-6 md:grid-cols-2">
-          {[1, 2].map(i => <Skeleton key={i} className="h-32 rounded-2xl bg-mountain-meadow-100/5" />)}
+          <Skeleton className="h-32 rounded-2xl bg-mountain-meadow-100/5" />
+          <Skeleton className="h-32 rounded-2xl bg-mountain-meadow-100/5" />
         </div>
         <Skeleton className="h-[500px] w-full rounded-3xl bg-mountain-meadow-100/5" />
       </div>
@@ -182,7 +231,7 @@ export default function AdminTestResultPage() {
                 <TableBody>
                   {data.participants.map((p, idx) => (
                     <TableRow
-                      key={p.userId}
+                      key={`${p.userId}-${idx}`}
                       className="group/row transition-colors hover:bg-mountain-meadow-50/30 border-b border-border/40 last:border-none"
                     >
                       <TableCell className="py-4 px-6">
